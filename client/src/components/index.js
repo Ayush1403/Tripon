@@ -1,1 +1,5 @@
 export {default as Home} from './Home'
+export {default as explore} from './explore'
+export {default as Goa} from './goa'
+export {default as Kerala} from './kerala'
+export {default as Binsara} from './binsara'

@@ -1,27 +1,17 @@
 const express = require('express');
-const mongoose = require('mongoose');
-const router = require('./router');
+const itineraryRouter = require('./routes/api');
+const axios = require('axios')
 
 const app = express();
-const PORT = 3000;
 
-// Connect to MongoDB
-mongoose.connect('mongodb+srv://ayushsrivastava03004:Ayush23@cluster0.qamyfbt.mongodb.net/?retryWrites=true&w=majority', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-  .then(() => {
-    console.log('Connected to MongoDB');
-  })
-  .catch((error) => {
-    console.error('Failed to connect to MongoDB', error);
-  });
+app.use('/itinerary', itineraryRouter);
 
-app.use(express.json());
+app.listen(4000, () => {
+  console.log('App listening on port 4000');
+});
 
-// Mount the router
-app.use('/', router);
-
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+axios.get('/').then((response) => {
+  console.log('Backend server is running');
+}).catch((error) => {
+  console.log('Backend server is not running');
 });

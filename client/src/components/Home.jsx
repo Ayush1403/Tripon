@@ -1,13 +1,38 @@
-import React, { useState,Link } from 'react';
+import React, { useState,Link,useEffect } from 'react';
 import Navbar from './Navbar';
 import bg from '../ASSETS/inh3.png';
 import Product from './product';
 import lg from '../ASSETS/about picture.png'
 import ig from '../ASSETS/rr.png'
 import { NavLink } from 'react-router-dom';
-import jj from '../ASSETS/jj.png'
+import jj from '../ASSETS/jj.webp'
+import gsap from 'gsap'
+import { explore } from '.';
 
 function Home() {
+useEffect(()=>{
+  const sections = document.querySelectorAll('#section');
+
+  sections.forEach((section, index) => {
+    const offset = index ===0 ? '0' : '-50%';
+
+   
+    gsap.to("#section", {
+      scrollTrigger: {
+        trigger: section,
+        start: offset,
+        end: '50% 50%',
+        pin: true,
+        toggleActions: 'play none none reverse',
+      },
+      x: '0%',
+      opacity: 1,
+      duration: 1,
+      ease: 'power2.out',
+    });
+  });
+}, []);
+
   const backgroundImageStyle = {
     backgroundImage: `url(${bg})`,
     backgroundSize: 'cover',
@@ -21,7 +46,7 @@ function Home() {
   };
 
   const [people, setPeople] = useState('');
-  const [date, setDate] = useState('');
+  const [days, setDays] = useState('');
   const [budget, setBudget] = useState('');
   const [destination, setDestination] = useState('');
   const [customDestination, setCustomDestination] = useState('');
@@ -40,7 +65,28 @@ function Home() {
   const handleSubmit = (e) => {
     e.preventDefault();
     const selectedDestination = destination === 'Other' ? customDestination : destination;
-    console.log('Form data submitted:', { people, date, budget, destination: selectedDestination });
+    
+    // Now, you can make a fetch request to the backend with the user's input
+    fetch('/generate-itinerary', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        budget: budget,
+        people: people,
+        days: days,
+        destination: selectedDestination,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        // Handle the response from the backend as needed
+        console.log('Response from the backend:', data);
+      })
+      .catch((error) => {
+        console.error('Error fetching itinerary data:', error);
+      });
   };
 
   return (
@@ -48,17 +94,17 @@ function Home() {
       <div>
         <Navbar />
       </div>
-      <section className='w-screen h-screen cover flex flex-col justify-center items-center' style={backgroundImageStyle}>
-        <div className='w-screen flex items-center ease-in flex flex-col justify-center duration-200'>
-          <h1 className='text-white text-5xl drop-shadow-md  h-auto lg:text-6xl font-bold p-6 font-secondary'>
+      <section id='section' className='w-screen h-screen cover flex flex-col justify-center items-center' style={backgroundImageStyle}>
+        <div className='w-screen flex items-center ease-in flex-col justify-center duration-200'>
+          <h1 className='text-white text-5xl drop-shadow-md  h-auto lg:text-6xl font-bold p-6 font-secondry'>
             Let us help You plan your Travel
           </h1>
           <h4 className='text-white text-xl drop-shadow-md h-auto lg:text-xl font-semibold p-6 font-secondary'>
-            You 
+            You are one step away to your Journey
           </h4>
         </div>
-<div className='p-6 bg-white bg-opacity-30 rounded-xl'>
-        <form className='text-center bg-white flex flex-row  mt-6 p-6 rounded-lg shadow-md '>
+<div className='p-6 bg-white mt-3 bg-opacity-0 rounded-xl flex items-center'>
+        <form className='text-center bg-white flex flex-row  p-6 rounded-lg shadow-md items-center' onSubmit={handleSubmit}>
           <div className='mb-4 mr-4'>
             <label htmlFor='people' className='block font-bold'>
               Number of People:
@@ -73,17 +119,17 @@ function Home() {
           </div>
 
           <div className='mb-4 mr-4'>
-            <label htmlFor='date' className='block'>
-              Date to Travel:
-            </label>
-            <input
-              type='date'
-              id='date'
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className='border border-gray-300 rounded-md p-2 w-full'
-            />
-          </div>
+  <label htmlFor='days' className='block font-bold'>
+    Number of Days:
+  </label>
+  <input
+    type='number'
+    id='days'
+    value={days}
+    onChange={(e) => setDays(e.target.value)}
+    className='border border-gray-300 rounded-md p-2 w-full'
+  />
+</div>
 
           <div className='mb-4 mr-4'>
             <label htmlFor='budget' className='block'>
@@ -134,21 +180,18 @@ function Home() {
             </div>
           )}
 
-          <button type='submit' className='mt-4 bg-[#FA8B02] font-semibold text-white py-2 px-4 rounded-md'>
+          <NavLink to={"/explore"} type='submit' className='p-3 bg-[#FA8B02] font-semibold text-white py-2 px-4 rounded-md'>
             Submit
-          </button>
+          </NavLink>
         </form>
         </div>
       </section>
       <section className='h-[650px] w-screen p-20 text-xl font-semibold '>
             <h2>Explore Some popular destination</h2>
 
-            <div className=' flex flex-row mt-10 justify-center'>
+            <div className=' flex flex-row mt-10 justify-around'>
               <Product />
-              <Product />
-              <Product />
-              <Product />
-              <Product />
+             
             </div>
       </section>
       <hr />
