@@ -48,7 +48,7 @@ function Product() {
               <div className='w-[200px]'>
                 <h3 className="font-primary text-xl">Binsar</h3>
                 <h5 className="font-medium text-sm">Panoramic view of the Himalayas</h5>
-                <NavLink to={"/binsar"} className="text-orange-600">See more</NavLink>
+                <NavLink to={"/binsara"} className="text-orange-600">See more</NavLink>
               </div>
             </div>
           </div>
