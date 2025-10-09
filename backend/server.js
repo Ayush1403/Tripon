@@ -14,7 +14,9 @@ console.log("DEBUG MAIL_PASS:", process.env.MAIL_PASS ? "LOADED" : "MISSING");
 
 const app = express();
 app.use(cors({
-    origin: process.env.FRONTEND_URL,
+    origin: ["http://localhost:5173", 
+        process.env.FRONTEND_URL
+    ],
     credentials: true,
     methods: ['GET','POST','DELETE','PUT']
 }))
