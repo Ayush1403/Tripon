@@ -15,7 +15,8 @@ console.log("DEBUG MAIL_PASS:", process.env.MAIL_PASS ? "LOADED" : "MISSING");
 const app = express();
 app.use(cors({
     origin: ["http://localhost:5173", 
-        process.env.FRONTEND_URL
+        process.env.FRONTEND_URL,
+        "https://tripon-kappa.vercel.app",
     ],
     credentials: true,
     methods: ['GET','POST','DELETE','PUT']
