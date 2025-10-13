@@ -1,21 +1,28 @@
-import Users from '../models/user.model.js'
-import jwt from 'jsonwebtoken'
 
 export const protectRoute = async (req, res, next) => {
     try {
-        const newtoken = req.cookies?.token;
+        // Try cookie first
+        let token = req.cookies?.token;
+        
+        // If no cookie, try Authorization header
+        if (!token) {
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                token = authHeader.substring(7);
+            }
+        }
 
-        if (!newtoken) {
-            return res.status(401).json({  // ← CHANGE 404 to 401
+        if (!token) {
+            return res.status(401).json({
                 success: false,
                 error: "Token Not Found"
             });
         }
 
-        const decode = jwt.verify(newtoken, process.env.JWT_KEY);
+        const decode = jwt.verify(token, process.env.JWT_KEY);
 
         if (!decode) {
-            return res.status(401).json({  // ← CHANGE 400 to 401
+            return res.status(401).json({
                 success: false,
                 error: "Unauthorized"
             });
@@ -27,7 +34,7 @@ export const protectRoute = async (req, res, next) => {
 
     } catch (error) {
         console.log('Auth error:', error);
-        return res.status(401).json({  // ← CHANGE 500 to 401 for auth errors
+        return res.status(401).json({
             success: false,
             error: "Unauthorized"
         });
