@@ -5,17 +5,15 @@ export const generateToken = (userId, res) => {
         expiresIn: "7d",
     });
 
-    console.log('🔐 Setting cookie for token');
-
+    // Still set cookie for same-origin requests
     res.cookie("token", token, {
         maxAge: 7 * 24 * 60 * 60 * 1000,
         httpOnly: true,
-        sameSite: "none",          
-        secure: true,             
+        sameSite: "none",
+        secure: true,
         path: "/",
-        domain: ".onrender.com",   
     });
 
-    console.log('✅ Cookie set successfully');
+    // ✅ ALSO return token in response for cross-origin
     return token;
 };
