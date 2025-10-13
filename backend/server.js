@@ -1,7 +1,5 @@
 import express from 'express'
 import dotenv from 'dotenv'
-import path from 'path'
-import { fileURLToPath } from 'url'
 import database from './config/db.js'
 import userRouter from './routes/user.route.js'
 import itenaryRouter from './routes/itenary.route.js'
@@ -12,9 +10,6 @@ import cookieParser from 'cookie-parser'
 import './config/eventExpire.js'
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 console.log("DEBUG MAIL_ID:", process.env.MAIL_ID);
 console.log("DEBUG MAIL_PASS:", process.env.MAIL_PASS ? "LOADED" : "MISSING");
@@ -36,6 +31,7 @@ app.use(cors({
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
+            console.log('❌ CORS blocked origin:', origin);
             callback(new Error('CORS not allowed'));
         }
     },
@@ -52,7 +48,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
 // ========================================
-// API ROUTES (MUST come first)
+// API ROUTES
 // ========================================
 app.use('/user', userRouter);
 app.use('/iten', itenaryRouter);
@@ -61,7 +57,26 @@ app.use('/book', bookingRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Backend is running' });
+    res.json({ 
+        status: 'ok', 
+        message: 'Backend is running',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+    res.json({ 
+        message: 'TripOn API Server',
+        version: '1.0.0',
+        endpoints: {
+            health: '/api/health',
+            user: '/user/*',
+            itinerary: '/iten/*',
+            events: '/event/*',
+            bookings: '/book/*'
+        }
+    });
 });
 
 // Debug endpoint
@@ -74,21 +89,22 @@ app.get('/api/debug', (req, res) => {
     });
 });
 
-// ========================================
-// SERVE FRONTEND (AFTER all API routes)
-// ========================================
-const frontendPath = path.join(__dirname, '../frontend/dist');
-
-try {
-    app.use(express.static(frontendPath));
-    
-    // Fallback to index.html using app.use (more reliable than app.get('*', ...))
-    app.use((req, res) => {
-        res.sendFile(path.join(frontendPath, 'index.html'));
+// 404 handler for undefined routes
+app.use((req, res) => {
+    res.status(404).json({ 
+        error: 'Route not found',
+        path: req.path 
     });
-} catch (err) {
-    console.warn('⚠️ Frontend dist not found - running API only mode');
-}
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+    console.error('Server Error:', err);
+    res.status(500).json({ 
+        error: 'Internal Server Error',
+        message: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+});
 
 // ========================================
 // START SERVER
