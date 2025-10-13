@@ -186,35 +186,33 @@ export const resendOtp = async (req, res) => {
 
 //Login User
 export const userSignin = async (req, res) => {
-  const { userType,username, password } = req.body;
+  const { userType, username, password } = req.body;
 
   try {
     if (!username || !password) {
-      return res
-        .status(400)
-        .json({ success: false, error: "All field required" });
+      return res.status(400).json({ success: false, error: "All field required" });
     }
+    
     const nameExist = await User.findOne({ username: username });
     if (!nameExist) {
-      return res
-        .status(404)
-        .json({ success: false, error: "Username not found" });
+      return res.status(404).json({ success: false, error: "Username not found" });
     }
+    
     const comparePassword = await bcrypt.compare(password, nameExist.password);
     if (!comparePassword) {
-      return res
-        .status(400)
-        .json({ success: false, error: "Invalid Password" });
+      return res.status(400).json({ success: false, error: "Invalid Password" });
     }
+    
     if (nameExist.isVerified != true) {
-      return res
-        .status(403)
-        .json({ success: false, error: "User not verified." });
+      return res.status(403).json({ success: false, error: "User not verified." });
     }
 
-    generateToken(nameExist._id, res);
+    const token = generateToken(nameExist._id, res);
+    
+    // ✅ Include token in response
     res.status(201).json({
       error: "LoggedIn Successfully",
+      token: token,  // ⭐ Add this
       user: {
         username,
         _id: nameExist._id,
@@ -226,7 +224,6 @@ export const userSignin = async (req, res) => {
     console.log(error.error);
   }
 };
-
 //Logout User
 export const logoutUser = async (req, res) => {
   try {
