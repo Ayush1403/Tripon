@@ -1,3 +1,4 @@
+import { setAuthToken, clearAuthToken } from "../lib/axios";
 import { create } from "zustand";
 import { axiosAPI } from "../lib/axios";
 
@@ -54,12 +55,18 @@ export const authState = create((set, get) => ({
         }
     },
 
-    login: async (data) => {
+  login: async (data) => {
         set({ isLoggingIn: true, error: null });
         try {
             console.log('🔐 Logging in...');
             const res = await axiosAPI.post('/user/login', data);
             console.log('✅ Login successful:', res.data);
+            
+            // ✅ Store token in memory
+            if (res.data.token) {
+                setAuthToken(res.data.token);
+            }
+            
             set({
                 isLoggingIn: false,
                 authUser: res.data.user,
@@ -73,6 +80,31 @@ export const authState = create((set, get) => ({
                 error: error.response?.data?.error || "Login failed"
             });
             return false;
+        }
+    },
+
+    logout: async () => {
+        set({ isLoggingOut: true, error: null });
+        try {
+            console.log('🔓 Logging out...');
+            await axiosAPI.post('/user/logout');
+            
+            // ✅ Clear token from memory
+            clearAuthToken();
+            
+            console.log('✅ Logout successful');
+            set({
+                isLoggingOut: false,
+                authUser: null,
+                error: null,
+            });
+        } catch (error) {
+            clearAuthToken(); // Clear even on error
+            console.error('❌ Logout failed:', error.response?.data);
+            set({
+                isLoggingOut: false,
+                error: error.response?.data?.error || "Logout failed"
+            });
         }
     },
 
@@ -98,25 +130,6 @@ export const authState = create((set, get) => ({
         }
     },
 
-    logout: async () => {
-        set({ isLoggingOut: true, error: null });
-        try {
-            console.log('🔓 Logging out...');
-            const res = await axiosAPI.post('/user/logout');
-            console.log('✅ Logout successful');
-            set({
-                isLoggingOut: false,
-                authUser: null,
-                error: null,
-            });
-        } catch (error) {
-            console.error('❌ Logout failed:', error.response?.data);
-            set({
-                isLoggingOut: false,
-                error: error.response?.data?.error || "Logout failed"
-            });
-        }
-    },
 
     clearError: () => set({ error: null }),
 }));
