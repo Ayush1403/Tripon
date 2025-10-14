@@ -1,37 +1,26 @@
 // config/mail.js
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import dotenv from "dotenv";
-dotenv.config(); 
+dotenv.config();
 
-export const createTransporter = () => {
-  if (!process.env.MAIL_ID || !process.env.MAIL_PASS) {
-    throw new Error("MAIL_ID or MAIL_PASS missing in .env");
+if (!process.env.RESEND_API) {
+  throw new Error("RESEND_API key missing in .env");
+}
+
+export const resend = new Resend(process.env.RESEND_API);
+
+export const sendMail = async({to , subject , html , from}) => {
+  try {
+    const response  = await resend.emails.send({
+      from: from || "TripOn <onboarding@resend.dev>",
+      to,
+      subject,
+      html,
+    })
+    console.log("Email Sent")
+
+    return response;
+  } catch (error) {
+    console.log("Email Sending failed due to : " ,error);
   }
-
-  return nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.MAIL_ID,
-      pass: process.env.MAIL_PASS,
-    },
-    // Add these timeout settings
-    connectionTimeout: 10000, // 10 seconds
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-    // Explicitly set these for production
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false, // true for 465, false for other ports
-    tls: {
-      rejectUnauthorized: true,
-      minVersion: "TLSv1.2"
-    },
-    // Add pool and rate limiting for better reliability
-    pool: true,
-    maxConnections: 5,
-    maxMessages: 100,
-    // Enable debug logs in production (remove after fixing)
-    debug: process.env.NODE_ENV !== 'production',
-    logger: process.env.NODE_ENV !== 'production'
-  });
-};
+}
