@@ -76,17 +76,21 @@ export const createUser = async (req, res) => {
     });
     if (newUser) {
       await newUser.save();
-     try {
+  try {
   await transporter.sendMail({
-    from: "ayushsrivastava03004@gmail.com",
+    from: process.env.MAIL_ID || "ayushsrivastava03004@gmail.com",
     to: email,
     subject: "OTP for Verification👍",
     html: otpEmailTemplate(fullName, otp),
   });
+  console.log('✅ OTP email sent successfully to:', email);
 } catch (emailError) {
-  console.log('Email sending error:', emailError.error);
-  console.log('Error code:', emailError.code);
-  // Still save the user but log the email error
+  console.error('❌ Email sending failed:', {
+    message: emailError.message,
+    code: emailError.code,
+    response: emailError.response,
+    command: emailError.command
+  });
 }
       res.status(201).json({
         success: true,
