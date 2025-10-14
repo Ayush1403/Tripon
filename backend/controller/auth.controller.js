@@ -5,16 +5,15 @@ import { generateToken } from "../config/util.js";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { otpEmailTemplate } from "../emailTemplete/otpTemplete.js";
-import { createTransporter } from "../config/mail.js";
-
-//Mail User
-const transporter = createTransporter();
+import {sendMail} from "../config/mail.js"
 
 
 
-//Otp Generate
+
+
+
 const generateOtp = () => crypto.randomInt(10000, 99999).toString();
-// Create User
+
 export const createUser = async (req, res) => {
   const { userType , username, fullName, email, password } = req.body;
   
@@ -76,21 +75,16 @@ export const createUser = async (req, res) => {
     });
     if (newUser) {
       await newUser.save();
-  try {
-  await transporter.sendMail({
-    from: process.env.MAIL_ID || "ayushsrivastava03004@gmail.com",
+     try {
+  await sendMail({
     to: email,
     subject: "OTP for Verification👍",
     html: otpEmailTemplate(fullName, otp),
   });
-  console.log('✅ OTP email sent successfully to:', email);
 } catch (emailError) {
-  console.error('❌ Email sending failed:', {
-    message: emailError.message,
-    code: emailError.code,
-    response: emailError.response,
-    command: emailError.command
-  });
+  console.log('Email sending error:', emailError.error);
+  console.log('Error code:', emailError.code);
+  // Still save the user but log the email error
 }
       res.status(201).json({
         success: true,
@@ -169,8 +163,8 @@ export const resendOtp = async (req, res) => {
     user.otpDate = otpDate;
     await user.save();
 
-    await transporter.sendMail({
-      from: "ayushsrivastava03004@gmail.com",
+    await sendMail({
+     
       to: email,
       subject: "Resend OTP for Verification 👍",
       html: otpEmailTemplate(user.fullName, otp),
@@ -190,33 +184,35 @@ export const resendOtp = async (req, res) => {
 
 //Login User
 export const userSignin = async (req, res) => {
-  const { userType, username, password } = req.body;
+  const { userType,username, password } = req.body;
 
   try {
     if (!username || !password) {
-      return res.status(400).json({ success: false, error: "All field required" });
+      return res
+        .status(400)
+        .json({ success: false, error: "All field required" });
     }
-    
     const nameExist = await User.findOne({ username: username });
     if (!nameExist) {
-      return res.status(404).json({ success: false, error: "Username not found" });
+      return res
+        .status(404)
+        .json({ success: false, error: "Username not found" });
     }
-    
     const comparePassword = await bcrypt.compare(password, nameExist.password);
     if (!comparePassword) {
-      return res.status(400).json({ success: false, error: "Invalid Password" });
+      return res
+        .status(400)
+        .json({ success: false, error: "Invalid Password" });
     }
-    
     if (nameExist.isVerified != true) {
-      return res.status(403).json({ success: false, error: "User not verified." });
+      return res
+        .status(403)
+        .json({ success: false, error: "User not verified." });
     }
 
-    const token = generateToken(nameExist._id, res);
-    
-    // ✅ Include token in response
+    generateToken(nameExist._id, res);
     res.status(201).json({
       error: "LoggedIn Successfully",
-      token: token,  // ⭐ Add this
       user: {
         username,
         _id: nameExist._id,
@@ -228,6 +224,7 @@ export const userSignin = async (req, res) => {
     console.log(error.error);
   }
 };
+
 //Logout User
 export const logoutUser = async (req, res) => {
   try {
