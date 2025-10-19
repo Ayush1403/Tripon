@@ -42,8 +42,8 @@ const App = () => {
      <Route path='/' element={!authUser ?< Navigate to={'/login'}/>:authUser?.userType === "Organiser" ? <OrganiserDashboard /> : <Home />} />
        <Route path='/login' element={!authUser ? <Login /> : <Navigate to={'/'}/>} />
        <Route path='/signup' element={<SignUp/>}/>
-        <Route path='/itenary' element={<ItenaryDetail />  }/>
-          <Route path='/itenaryP' element={<ItenaryPage />  }/>
+        <Route path='/itenary' element={!authUser ? <Login /> : <ItenaryDetail />} />
+          <Route path='/itenaryP' element={!authUser ? <Login /> : <ItenaryPage />} />
           <Route path='/signupO' element={<SignUpOrganiser/>}/>
           <Route path='/organiser' element={authUser?.userType==="Organiser"?<OrganiserDashboard />: <Home />} />
           <Route path="/book" element={!authUser ? <Login />:<BookingPage />} />
@@ -52,8 +52,8 @@ const App = () => {
           <Route path="/eventshow/:eventId" element={!authUser ? <Navigate to={"/login"} />:authUser?.userType === "Organiser" ? <EventPages/> : <Home />}   />
           <Route path="/all-events" element={!authUser ? <Navigate to={"/login"} />:authUser?.userType === "Organiser" ? <AllEvents/> : <Home />}   />
           <Route path='user-book' element={!authUser ? <Login /> : <UserBooking /> } />
-                    <Route path='my-trips' element={!authUser ? <Login /> : <MyTrip /> } />
-<Route path='user-events' element={!authUser ? <Login /> : <UserEvents /> } />
+          <Route path='my-trips' element={!authUser ? <Login /> : <MyTrip /> } />
+          <Route path='user-events' element={!authUser ? <Login /> : <UserEvents /> } />
 
    </Routes>
    </main>
