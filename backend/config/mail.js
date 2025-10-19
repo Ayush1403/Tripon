@@ -3,11 +3,11 @@ import { Resend } from "resend";
 import dotenv from "dotenv";
 dotenv.config();
 
-if (!process.env.RESEND_API_KEY) {
-  throw new Error("RESEND_API_KEY is required in .env");
+if (!process.env.RESEND_API) {
+  throw new Error("RESEND_API is required in .env");
 }
 
-export const resend = new Resend(process.env.RESEND_API_KEY);
+export const resend = new Resend(process.env.RESEND_API);
 
 export const sendMail = async ({ to, subject, html, from }) => {
   try {
