@@ -56,11 +56,11 @@ const ItenaryCreation = ({ className }) => {
     if (createdItenary) {
       setSelectedItenary(createdItenary);
 
-      // Save once in localStorage so refresh works
-      localStorage.setItem("selectedItenary", JSON.stringify(createdItenary));
-
-      // Pass via navigate state
-      navigate("/itenaryP", { state: { itenary: createdItenary } });
+      // Pass itinerary via navigate state only
+      navigate("/itenaryP", { 
+        state: { itenary: createdItenary },
+        replace: true 
+      });
     }
   };
 
