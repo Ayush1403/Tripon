@@ -1,116 +1,238 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Slider from "react-slick";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import 'leaflet-routing-machine';
+import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
+import { PanelBottomClose } from 'lucide-react';
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+import NavBar from "../components/NavBar";
 
 const ItenaryPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [itenary, setItenary] = useState(null);
   const [openDay, setOpenDay] = useState(0);
+  const [isOpen, setIsOpen] = useState(null);
+  const [coords, setCoords] = useState([]);
 
-  // Load itinerary from navigation state or localStorage
+  // Load itinerary from navigation state only
   useEffect(() => {
     if (location.state?.itenary) {
       setItenary(location.state.itenary);
-      localStorage.setItem("selectedItenary", JSON.stringify(location.state.itenary));
     } else {
-      const stored = localStorage.getItem("selectedItenary");
-      if (stored) setItenary(JSON.parse(stored));
+      // If no state, redirect back to home or creation page
+      navigate("/");
     }
-  }, [location.state]);
-
-  if (!itenary) return <p className="p-8 text-xl text-gray-600">Loading itinerary...</p>;
+  }, [location.state, navigate]);
 
   const days = itenary?.data?.days || [];
   const currentDay = openDay !== null ? days[openDay] : days[0];
-  const coverImage = itenary?.data?.coverImage;
-  const stats = itenary?.data?.stats;
 
   const settings = {
-    dots: true,
     infinite: true,
     speed: 500,
     slidesToShow: 1,
     slidesToScroll: 1,
     autoplay: true,
     autoplaySpeed: 2000,
+    cssEase: "linear",
     pauseOnHover: true,
-    arrows: true,
   };
 
-  const toggleDay = (idx) => setOpenDay(openDay === idx ? null : idx);
+  // Custom marker icon
+  delete L.Icon.Default.prototype._getIconUrl;
+  const custom = L.icon({
+    iconUrl: "/images/location.svg",
+    iconSize: [38, 80],
+    iconAnchor: [19, 80],
+    popupAnchor: [-3, -76],
+  });
+
+  // Get coordinates for places
+  const getCoordinates = async (placeName) => {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(placeName)}`
+    );
+    const data = await res.json();
+    if (data.length > 0) {
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    }
+    return null;
+  };
+
+  // Fetch coordinates when day changes
+  useEffect(() => {
+    const fetchCord = async () => {
+      if (!currentDay?.places) return;
+
+      const result = await Promise.all(
+        currentDay.places.map(async (place) => {
+          const c = await getCoordinates(place.name);
+          if (c) return { ...c, name: place.name };
+          return null;
+        })
+      );
+      setCoords(result.filter(Boolean));
+    };
+    fetchCord();
+  }, [currentDay]);
+
+  // Auto zoom map to fit markers
+  const AutoZoom = ({ coords }) => {
+    const map = useMap();
+    useEffect(() => {
+      if (coords.length === 0) return;
+      const bounds = coords.map((c) => [c.lat, c.lng]);
+      map.fitBounds(bounds, { padding: [10, 10] });
+    }, [coords, map]);
+    return null;
+  };
+
+  // Routing between markers
+  const Routing = ({ coords }) => {
+    const map = useMap();
+    useEffect(() => {
+      if (!map || coords.length < 2) return;
+      const waypoints = coords.map((c) => L.latLng(c.lat, c.lng));
+
+      const routingControl = L.Routing.control({
+        waypoints,
+        routeWhileDragging: false,
+        show: false,
+        addWaypoints: false,
+        draggableWaypoints: false,
+        fitSelectedRoutes: true,
+        createMarker: (i, wp) => {
+          return L.marker(wp.latLng, { icon: custom }).bindPopup(
+            coords[i]?.name || ""
+          );
+        },
+      }).addTo(map);
+
+      return () => map.removeControl(routingControl);
+    }, [coords, map]);
+
+    return null;
+  };
+
+  if (!itenary)
+    return <p className="p-8 text-xl text-gray-600">Loading itinerary...</p>;
 
   return (
-    <main className="p-6 w-full min-h-screen flex flex-col md:flex-row justify-center items-start gap-6">
-      {/* Left Section: Slider + Cover */}
-      <div className="w-full md:w-1/2 flex flex-col gap-4">
-      
-
-        {/* Slider for current day */}
-        {currentDay?.places?.length > 0 ? (
-          <Slider {...settings} key={openDay}>
-            {currentDay.places.map((place, idx) => (
-              <div key={`${openDay}-${idx}`} className="relative">
-                <img
-                  src={place.image || "/placeholder-image.jpg"}
-                  alt={place.name}
-                  className="w-full h-[400px] object-cover rounded-lg"
-                  onError={(e) => (e.target.src = "/placeholder-image.jpg")}
-                />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                  <h3 className="text-white font-bold text-xl">{place.name}</h3>
-                  <p className="text-white text-sm">{place.type}</p>
-                </div>
-              </div>
-            ))}
-          </Slider>
-        ) : (
-          <div className="w-full h-96 bg-gray-200 flex items-center justify-center rounded-lg">
-            <p className="text-gray-500">No images available</p>
-          </div>
-        )}
+    <div className="w-full min-h-screen bg-gradient-to-br from-orange-100 to-amber-100">
+        <NavBar page='itinerary'/>
+      <div className="w-1/2 flex justify-start items-start text-start">
+        <h1 className="w-full text-start mt-20 mx-10 text-5xl">
+          {currentDay?.city || "Your Itinerary"}
+        </h1>
       </div>
 
-      {/* Right Section: Accordion */}
-      <div className="w-full md:w-1/2 overflow-y-auto max-h-[700px] flex flex-col gap-2">
-        {days.map((day, idx) => (
+      <div className="w-full flex flex-col justify-center items-center gap-2 min-h-screen">
+        {/* Main content: Slider and Map */}
+        <div className="flex lg:flex lg:flex-row w-[95%] mt-10 gap-4">
+          {/* Image Slider */}
+          <div className="lg:w-1/2 w-full z-10 rounded-lg">
+            {currentDay?.places && currentDay.places.length > 0 ? (
+              <div className="w-full rounded-xl h-fit">
+                <Slider {...settings} className="rounded-lg drop-shadow-2xl" key={openDay}>
+                  {currentDay.places.map((place, id) => (
+                    <div key={id}>
+                      <img
+                        src={place.image || "/placeholder-image.jpg"}
+                        alt={place.name}
+                        className="object-cover z-10 rounded-lg w-full h-96"
+                        onError={(e) => (e.target.src = "/placeholder-image.jpg")}
+                      />
+                      <div className="absolute bg-gradient-to-t from-black/60 to-transparent w-full h-30 text-white bottom-0 flex items-center text-2xl px-4 font-rubik font-semibold z-50">
+                        <h1 className="text-white">{place.name}</h1>
+                      </div>
+                    </div>
+                  ))}
+                </Slider>
+              </div>
+            ) : (
+              <p>No Images Found</p>
+            )}
+          </div>
+
+          {/* Map */}
+          <div className="lg:w-1/2 w-full h-fit mb-10">
+            <MapContainer
+              center={coords.length > 0 ? [coords[0].lat, coords[0].lng] : [22, 77]}
+              zoom={5}
+              dragging={false}
+              scrollWheelZoom={false}
+              className="drop-shadow-2xl"
+              style={{
+                height: "384px",
+                width: "100%",
+                borderRadius: "8px",
+                borderColor: "#000",
+                borderSize: "2px",
+              }}
+            >
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/">OSM</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+              />
+              {coords.map((c, id) => (
+                <Marker riseOnHover key={id} position={[c.lat, c.lng]} icon={custom}>
+                  <Popup>{c.name}</Popup>
+                </Marker>
+              ))}
+              <AutoZoom coords={coords} />
+              <Routing coords={coords} />
+            </MapContainer>
+          </div>
+        </div>
+
+        {/* Day Accordion */}
+        {days.map((day, id) => (
           <div
-            key={day.day || idx}
-            className="border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm"
+            key={day.day || id}
+            className="w-[95%] flex h-auto items-start justify-between p-2 rounded-lg bg-amber-50 gap-4 flex-col"
+            onClick={() => setIsOpen(isOpen === id ? null : id)}
           >
             <div
-              className="p-4 cursor-pointer flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
-              onClick={() => toggleDay(idx)}
+              onClick={() => setOpenDay(id)}
+              className="flex flex-col gap-y-3 w-full transition-all ease-in duration-300 cursor-pointer"
             >
-              <span className="font-bold text-black">Day {day.day} - {day.city}</span>
-              <span className="text-black font-bold">{openDay === idx ? "▲" : "▼"}</span>
-            </div>
-
-            <div
-              className={`overflow-hidden transition-all duration-500 ease-in-out ${
-                openDay === idx ? "max-h-[1000px]" : "max-h-0"
-              }`}
-            >
-              <div className="p-4 space-y-3 bg-white">
+              <div className="flex justify-between items-center h-full mt-3 p-2">
+                <h1 className="font-bold font-rubik">Day {id + 1}</h1>
+                <PanelBottomClose
+                  className={`right-25 ${
+                    isOpen === id ? "transition-transform ease-in rotate-180" : ""
+                  }`}
+                />
+              </div>
+              <div
+                className={`grid font-rubik group transition-all grid-cols-1 w-full gap-2 duration-300 ease-in-out overflow-hidden ${
+                  isOpen === id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+                }`}
+              >
                 {day.places && day.places.length > 0 ? (
-                  day.places.map((place, i) => (
+                  day.places.map((place, idx) => (
                     <div
-                      key={i}
-                      className="pb-3 border-b border-gray-200 last:border-b-0"
+                      key={idx}
+                      className="flex hover:bg-gray-400/10 w-full ease-linear transition-all rounded-sm p-4 bg-gray-400/40 flex-col"
                     >
-                      <h1 className="font-semibold text-lg text-gray-800">{place.name}</h1>
-                      <p className="text-gray-600 text-sm mt-1">{place.description}</p>
-                      <p className="text-gray-500 text-xs mt-1 capitalize">Type: {place.type}</p>
+                      <h1 className="font-semibold">{place.name}</h1>
+                      <p className="font-light">{place.description}</p>
                     </div>
                   ))
                 ) : (
-                  <p className="text-gray-500 text-sm">No places for this day</p>
+                  <p className="text-gray-500">No places for this day</p>
                 )}
               </div>
             </div>
           </div>
         ))}
       </div>
-    </main>
+    </div>
   );
 };
 
